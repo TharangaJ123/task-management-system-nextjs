@@ -11,7 +11,7 @@ For this Task Management System, I have chosen Next.js API Routes (using the App
 
 *   **Frontend Layer:** Next.js (Client Components) for interactive task forms and dashboard views.
 *   **API Layer:** Next.js (Server Functions/API Routes) to handle business logic and database interactions.
-*   **Data Persistence:** Prisma ORM connected to a PostgreSQL database for reliable, structured data storage.
+*   **Data Persistence:** Prisma ORM connected to a MongoDB database for reliable, structured data storage.
 *   **Security Layer:** Middleware for route protection and JWT-based authentication to ensure data privacy.
 
 ## 3. Security Considerations
