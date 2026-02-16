@@ -10,7 +10,6 @@ const loginSchema = z.object({
     password: z.string().min(1, 'Password is required'),
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; // Ideally put this in .env
 
 export async function POST(req: Request) {
     try {
