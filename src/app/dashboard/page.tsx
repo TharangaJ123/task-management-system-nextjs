@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
+import ProductivityChart from '@/components/ProductivityChart';
 import { Plus, LogOut, Layout, User, Search, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -196,6 +197,8 @@ export default function DashboardPage() {
                             New Task
                         </motion.button>
                     </div>
+
+                    <ProductivityChart />
 
                     {/* Search and Filter Bar */}
                     <div className="flex flex-col sm:flex-row gap-4 mb-8">
