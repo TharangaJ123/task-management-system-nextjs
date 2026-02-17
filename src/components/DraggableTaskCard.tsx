@@ -2,7 +2,7 @@
 
 import { Draggable } from '@hello-pangea/dnd';
 import { motion } from 'framer-motion';
-import { Clock, Trash2, Calendar, AlertTriangle } from 'lucide-react';
+import { Clock, Trash2, Calendar, AlertTriangle, Edit2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -10,7 +10,7 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-interface Task {
+export interface Task {
     _id: string;
     title: string;
     description?: string;
@@ -24,9 +24,10 @@ interface DraggableTaskCardProps {
     task: Task;
     index: number;
     onDelete: (id: string) => void;
+    onEdit: (task: Task) => void;
 }
 
-export default function DraggableTaskCard({ task, index, onDelete }: DraggableTaskCardProps) {
+export default function DraggableTaskCard({ task, index, onDelete, onEdit }: DraggableTaskCardProps) {
     const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'COMPLETED';
 
     // Check if it was completed late
@@ -63,20 +64,35 @@ export default function DraggableTaskCard({ task, index, onDelete }: DraggableTa
                         <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-colors" />
 
                         <div className="flex justify-between items-start mb-2 relative z-10">
-                            <h4 className="font-semibold text-gray-800 line-clamp-1 text-md group-hover:text-indigo-600 transition-colors">
+                            <h4 className="font-semibold text-gray-800 line-clamp-1 text-md group-hover:text-indigo-600 transition-colors flex-1 pr-2">
                                 {task.title}
                             </h4>
-                            <motion.button
-                                whileHover={{ scale: 1.1, color: "#ef4444" }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDelete(task._id);
-                                }}
-                                className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded-full"
-                            >
-                                <Trash2 size={16} />
-                            </motion.button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <motion.button
+                                    whileHover={{ scale: 1.1, color: "#4f46e5" }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEdit(task);
+                                    }}
+                                    className="text-gray-300 p-1 hover:bg-indigo-50 rounded-full"
+                                    title="Edit Task"
+                                >
+                                    <Edit2 size={16} />
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.1, color: "#ef4444" }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDelete(task._id);
+                                    }}
+                                    className="text-gray-300 p-1 hover:bg-red-50 rounded-full"
+                                    title="Delete Task"
+                                >
+                                    <Trash2 size={16} />
+                                </motion.button>
+                            </div>
                         </div>
 
                         {task.description && (
