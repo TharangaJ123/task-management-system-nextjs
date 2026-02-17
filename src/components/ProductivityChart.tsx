@@ -123,7 +123,7 @@ export default function ProductivityChart() {
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                             }}
                             labelStyle={{ color: '#374151', fontWeight: 'bold', marginBottom: '8px' }}
-                            formatter={(value: number, name: string) => [value, name === 'created' ? 'Tasks Created' : 'Tasks Completed']}
+                            formatter={(value: any, name: any) => [value, name === 'created' ? 'Tasks Created' : 'Tasks Completed']}
                         />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
                         <Area
