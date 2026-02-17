@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
-import { Plus, LogOut, Layout, User } from 'lucide-react';
+import { Plus, LogOut, Layout, User, Search, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Task {
@@ -22,6 +22,10 @@ export default function DashboardPage() {
     const router = useRouter();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isLoadingTasks, setIsLoadingTasks] = useState(true);
+
+    // Search and Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | Task['status']>('ALL');
 
     // New Task State
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -124,6 +128,13 @@ export default function DashboardPage() {
         }
     };
 
+    const filteredTasks = tasks.filter(task => {
+        const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+        const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
     if (loading || !user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -184,6 +195,42 @@ export default function DashboardPage() {
                             <Plus size={18} className="mr-2" />
                             New Task
                         </motion.button>
+                    </div>
+
+                    {/* Search and Filter Bar */}
+                    <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                        <div className="relative flex-1">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                <Search size={18} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search tasks..."
+                                className="block w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white/80 backdrop-blur-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className="relative min-w-[200px]">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                <Filter size={18} />
+                            </div>
+                            <select
+                                className="block w-full pl-10 pr-8 py-2.5 border border-gray-200 rounded-xl text-sm bg-white/80 backdrop-blur-sm text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm appearance-none cursor-pointer"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value as any)}
+                            >
+                                <option value="ALL">All Statuses</option>
+                                <option value="ASSIGNED">To Do</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="COMPLETED">Done</option>
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
                     </div>
 
                     <AnimatePresence>
@@ -294,7 +341,7 @@ export default function DashboardPage() {
                         </div>
                     ) : (
                         <KanbanBoard
-                            tasks={tasks}
+                            tasks={filteredTasks}
                             onStatusChange={handleStatusChange}
                             onDelete={handleDeleteTask}
                         />
