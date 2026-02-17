@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import TaskCard from '@/components/TaskCard';
+import KanbanBoard from '@/components/KanbanBoard';
+import { Plus, LogOut, Layout, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Task {
     _id: string;
@@ -12,6 +14,7 @@ interface Task {
     status: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED';
     dueDate?: string;
     createdAt: string;
+    completedAt?: string;
 }
 
 export default function DashboardPage() {
@@ -24,6 +27,7 @@ export default function DashboardPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskDesc, setNewTaskDesc] = useState('');
+    const [newTaskDueDate, setNewTaskDueDate] = useState('');
 
     useEffect(() => {
         if (!loading && !user) {
@@ -57,6 +61,7 @@ export default function DashboardPage() {
                 body: JSON.stringify({
                     title: newTaskTitle,
                     description: newTaskDesc,
+                    dueDate: newTaskDueDate,
                 }),
             });
 
@@ -66,6 +71,7 @@ export default function DashboardPage() {
                 setShowCreateModal(false);
                 setNewTaskTitle('');
                 setNewTaskDesc('');
+                setNewTaskDueDate('');
             }
         } catch (error) {
             console.error('Failed to create task', error);
@@ -93,7 +99,16 @@ export default function DashboardPage() {
 
     const handleStatusChange = async (id: string, newStatus: Task['status']) => {
         // Optimistic update
-        setTasks(tasks.map(t => t._id === id ? { ...t, status: newStatus } : t));
+        setTasks(tasks.map(t => {
+            if (t._id === id) {
+                return {
+                    ...t,
+                    status: newStatus,
+                    completedAt: newStatus === 'COMPLETED' ? new Date().toISOString() : undefined
+                };
+            }
+            return t;
+        }));
 
         try {
             const res = await fetch(`/api/tasks/${id}`, {
@@ -110,23 +125,42 @@ export default function DashboardPage() {
     };
 
     if (loading || !user) {
-        return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+        );
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 font-sans">
-            <nav className="bg-white shadow">
+        <div className="min-h-screen bg-[#f3f4f6] font-sans relative overflow-hidden">
+            {/* Background Decor */}
+            <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent pointer-events-none" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+
+            <nav className="bg-white/70 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-white/50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
-                        <div className="flex items-center">
-                            <h1 className="text-xl font-bold text-indigo-600">Task Manager</h1>
+                        <div className="flex items-center gap-2">
+                            <div className="bg-indigo-600 p-2 rounded-lg text-white">
+                                <Layout size={20} />
+                            </div>
+                            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+                                TaskFlow
+                            </h1>
                         </div>
-                        <div className="flex items-center space-x-4">
-                            <span className="text-gray-700">Welcome, {user.name}</span>
+                        <div className="flex items-center space-x-6">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100/80 rounded-full border border-gray-200/50">
+                                <div className="bg-white p-1 rounded-full shadow-sm text-gray-600">
+                                    <User size={16} />
+                                </div>
+                                <span className="text-sm font-medium text-gray-700 pr-2">{user.name}</span>
+                            </div>
                             <button
                                 onClick={logout}
-                                className="text-sm font-medium text-gray-500 hover:text-gray-900"
+                                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-red-500 transition-colors"
                             >
+                                <LogOut size={18} />
                                 Logout
                             </button>
                         </div>
@@ -134,87 +168,136 @@ export default function DashboardPage() {
                 </div>
             </nav>
 
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <main className="max-w-screen-2xl mx-auto py-8 sm:px-6 lg:px-8 relative z-10">
                 <div className="px-4 py-6 sm:px-0">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900">Your Tasks</h2>
-                        <button
+                    <div className="flex justify-between items-center mb-10">
+                        <div>
+                            <h2 className="text-3xl font-bold text-gray-800 tracking-tight">Project Board</h2>
+                            <p className="text-gray-500 mt-1">Manage your tasks and track progress</p>
+                        </div>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => setShowCreateModal(true)}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                            className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-semibold rounded-xl shadow-lg shadow-indigo-500/30 text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all"
                         >
-                            + New Task
-                        </button>
+                            <Plus size={18} className="mr-2" />
+                            New Task
+                        </motion.button>
                     </div>
 
-                    {showCreateModal && (
-                        <div className="fixed inset-0 z-50 overflow-y-auto">
-                            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                                <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                                    <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-                                </div>
-                                <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                                <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative z-50">
-                                    <form onSubmit={handleCreateTask} className="p-6">
-                                        <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Create New Task</h3>
-                                        <div className="space-y-4">
+                    <AnimatePresence>
+                        {showCreateModal && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm"
+                                ></motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-50 overflow-hidden"
+                                >
+                                    <div className="p-6 sm:p-8">
+                                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                            <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
+                                                <Plus size={24} />
+                                            </div>
+                                            Create New Task
+                                        </h3>
+
+                                        <form onSubmit={handleCreateTask} className="space-y-6">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700">Title</label>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title</label>
                                                 <input
                                                     type="text"
                                                     required
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 bg-white"
+                                                    autoFocus
+                                                    className="block w-full border border-gray-200 rounded-xl shadow-sm py-3 px-4 text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                                    placeholder="What needs to be done?"
                                                     value={newTaskTitle}
                                                     onChange={(e) => setNewTaskTitle(e.target.value)}
                                                 />
                                             </div>
+
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700">Description</label>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
                                                 <textarea
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 bg-white"
-                                                    rows={3}
+                                                    className="block w-full border border-gray-200 rounded-xl shadow-sm py-3 px-4 text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none"
+                                                    rows={4}
+                                                    placeholder="Add details about this task..."
                                                     value={newTaskDesc}
                                                     onChange={(e) => setNewTaskDesc(e.target.value)}
                                                 />
                                             </div>
-                                        </div>
-                                        <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                                            <button
-                                                type="submit"
-                                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm"
-                                            >
-                                                Create
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowCreateModal(false)}
-                                                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Due Date</label>
+                                                <input
+                                                    type="date"
+                                                    className="block w-full border border-gray-200 rounded-xl shadow-sm py-3 px-4 text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                                    value={newTaskDueDate}
+                                                    onChange={(e) => setNewTaskDueDate(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="flex gap-4 pt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowCreateModal(false)}
+                                                    className="flex-1 py-3 px-4 border border-gray-200 rounded-xl shadow-sm text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 transition-all"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="flex-1 py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
+                                                >
+                                                    Create Task
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </motion.div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </AnimatePresence>
 
                     {isLoadingTasks ? (
-                        <div className="text-center py-10">Loading tasks...</div>
+                        <div className="flex items-center justify-center py-20">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                                <p className="text-gray-500">Loading your board...</p>
+                            </div>
+                        </div>
                     ) : tasks.length === 0 ? (
-                        <div className="text-center py-10 text-gray-500">
-                            No tasks found. Create one to get started!
+                        <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-gray-300">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4">
+                                <Layout size={32} />
+                            </div>
+                            <h3 className="mt-2 text-xl font-medium text-gray-900">No tasks yet</h3>
+                            <p className="mt-1 text-gray-500 max-w-sm mx-auto">Get started by creating a new task. Your board is waiting for you!</p>
+                            <div className="mt-6">
+                                <button
+                                    onClick={() => setShowCreateModal(true)}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                                    Create Task
+                                </button>
+                            </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {tasks.map((task) => (
-                                <TaskCard
-                                    key={task._id}
-                                    task={task}
-                                    onDelete={handleDeleteTask}
-                                    onStatusChange={handleStatusChange}
-                                />
-                            ))}
-                        </div>
+                        <KanbanBoard
+                            tasks={tasks}
+                            onStatusChange={handleStatusChange}
+                            onDelete={handleDeleteTask}
+                        />
                     )}
                 </div>
             </main>

@@ -22,11 +22,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const body = await req.json();
         const validatedData = updateTaskSchema.parse(body);
 
+        // Handle completedAt logic
+        const updateData: any = { ...validatedData };
+        if (validatedData.status === 'COMPLETED') {
+            updateData.completedAt = new Date();
+        } else if (validatedData.status) {
+            updateData.completedAt = null; // Reset if moved out of completed
+        }
+
         await dbConnect();
 
         const task = await Task.findOneAndUpdate(
             { _id: id, userId: auth.userId },
-            validatedData,
+            updateData,
             { new: true, runValidators: true }
         );
 

@@ -24,6 +24,10 @@ const TaskSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
+    completedAt: {
+        type: Date,
+        required: false,
+    },
 }, {
     timestamps: true,
 });
