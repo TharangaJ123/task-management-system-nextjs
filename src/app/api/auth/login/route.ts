@@ -26,7 +26,19 @@ export async function POST(req: Request) {
             );
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        let isMatch = await bcrypt.compare(password, user.password);
+
+        // Fallback for legacy plain-text passwords (lazy migration)
+        if (!isMatch) {
+            // Check if stored password matches plain text
+            if (user.password === password) {
+                // Update with plain text; pre-save hook will hash it
+                user.password = password;
+                await user.save();
+                isMatch = true;
+            }
+        }
+
         if (!isMatch) {
             return NextResponse.json(
                 { message: 'Invalid email or password' },
