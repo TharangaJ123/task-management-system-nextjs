@@ -5,6 +5,40 @@ import dbConnect from '@/lib/db';
 import Task from '@/models/Task';
 import mongoose from 'mongoose';
 
+/**
+ * @swagger
+ * /api/analytics:
+ *   get:
+ *     summary: Get task analytics
+ *     description: Retrieve task productivity statistics for the last 7 days.
+ *     tags:
+ *       - Analytics
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Analytics data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date:
+ *                         type: string
+ *                       created:
+ *                         type: number
+ *                       completed:
+ *                         type: number
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(req: Request) {
     try {
         const user = await verifyAuth();
