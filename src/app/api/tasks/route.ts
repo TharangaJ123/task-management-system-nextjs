@@ -4,6 +4,59 @@ import Task from '@/models/Task';
 import { verifyAuth } from '@/lib/auth';
 import { z } from 'zod';
 
+/**
+ * @swagger
+ * /api/tasks:
+ *   get:
+ *     summary: Get all tasks
+ *     description: Retrieve a list of all tasks for the authenticated user, sorted by creation date.
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of tasks
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ *   post:
+ *     summary: Create a new task
+ *     description: Create a new task with title, description, status, and due date.
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [ASSIGNED, IN_PROGRESS, COMPLETED]
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       201:
+ *         description: Task created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 const createTaskSchema = z.object({
     title: z.string().min(1, 'Title is required').max(100),
     description: z.string().optional(),
