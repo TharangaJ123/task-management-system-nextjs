@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
 const registerSchema = z.object({
@@ -24,10 +25,12 @@ export async function POST(req: Request) {
             );
         }
 
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         const user = await User.create({
             name,
             email,
-            password,
+            password: hashedPassword,
         });
 
         return NextResponse.json(
@@ -38,8 +41,9 @@ export async function POST(req: Request) {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
         }
+        console.error('Registration error:', error);
         return NextResponse.json(
-            { message: error.message || 'Internal Server Error' },
+            { message: 'Internal Server Error' },
             { status: 500 }
         );
     }
