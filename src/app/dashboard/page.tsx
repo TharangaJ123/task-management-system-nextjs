@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
+import SimpleTaskCard from '@/components/SimpleTaskCard';
 import ProductivityChart from '@/components/ProductivityChart';
-import { Plus, LogOut, Layout, User, Search, Filter } from 'lucide-react';
+import { Plus, LogOut, Layout, User, Search, Filter, Edit2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Task {
@@ -33,6 +34,14 @@ export default function DashboardPage() {
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskDesc, setNewTaskDesc] = useState('');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
+
+    // Edit Task State
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [editTaskTitle, setEditTaskTitle] = useState('');
+    const [editTaskDesc, setEditTaskDesc] = useState('');
+    const [editTaskDueDate, setEditTaskDueDate] = useState('');
+    const [editTaskStatus, setEditTaskStatus] = useState<Task['status']>('ASSIGNED');
 
     useEffect(() => {
         if (!loading && !user) {
@@ -80,6 +89,42 @@ export default function DashboardPage() {
             }
         } catch (error) {
             console.error('Failed to create task', error);
+        }
+    };
+
+    const handleEditTask = (task: Task) => {
+        setEditingTask(task);
+        setEditTaskTitle(task.title);
+        setEditTaskDesc(task.description || '');
+        setEditTaskDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
+        setEditTaskStatus(task.status);
+        setShowEditModal(true);
+    };
+
+    const handleUpdateTask = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingTask) return;
+
+        try {
+            const res = await fetch(`/api/tasks/${editingTask._id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: editTaskTitle,
+                    description: editTaskDesc,
+                    dueDate: editTaskDueDate,
+                    status: editTaskStatus,
+                }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setTasks(tasks.map(t => t._id === editingTask._id ? data.task : t));
+                setShowEditModal(false);
+                setEditingTask(null);
+            }
+        } catch (error) {
+            console.error('Failed to update task', error);
         }
     };
 
@@ -134,6 +179,15 @@ export default function DashboardPage() {
             (task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
         const matchesStatus = statusFilter === 'ALL' || task.status === statusFilter;
         return matchesSearch && matchesStatus;
+    });
+
+    const todayTasks = tasks.filter(task => {
+        if (!task.dueDate) return false;
+        const today = new Date();
+        const taskDate = new Date(task.dueDate);
+        return taskDate.getDate() === today.getDate() &&
+            taskDate.getMonth() === today.getMonth() &&
+            taskDate.getFullYear() === today.getFullYear();
     });
 
     if (loading || !user) {
@@ -198,7 +252,33 @@ export default function DashboardPage() {
                         </motion.button>
                     </div>
 
-                    <ProductivityChart />
+                    {/* Today's Focus Section */}
+                    {todayTasks.length > 0 && (
+                        <div className="mb-10">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <span className="bg-amber-100 p-1.5 rounded-lg text-amber-600">
+                                    <Calendar size={20} />
+                                </span>
+                                Today's Focus
+                                <span className="text-sm font-normal text-gray-500 ml-2">
+                                    ({todayTasks.length} {todayTasks.length === 1 ? 'task' : 'tasks'} due today)
+                                </span>
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {todayTasks.map(task => (
+                                    <SimpleTaskCard
+                                        key={task._id}
+                                        task={task}
+                                        onDelete={handleDeleteTask}
+                                        onEdit={handleEditTask}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <ProductivityChart refreshTrigger={tasks} />
 
                     {/* Search and Filter Bar */}
                     <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -318,6 +398,101 @@ export default function DashboardPage() {
                         )}
                     </AnimatePresence>
 
+                    <AnimatePresence>
+                        {showEditModal && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setShowEditModal(false)}
+                                    className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm"
+                                ></motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                    className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative z-50 overflow-hidden"
+                                >
+                                    <div className="p-6 sm:p-8">
+                                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                            <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
+                                                <Edit2 size={24} />
+                                            </div>
+                                            Edit Task
+                                        </h3>
+
+                                        <form onSubmit={handleUpdateTask} className="space-y-6">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    autoFocus
+                                                    className="block w-full border border-gray-200 rounded-xl shadow-sm py-3 px-4 text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                                    placeholder="What needs to be done?"
+                                                    value={editTaskTitle}
+                                                    onChange={(e) => setEditTaskTitle(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                                                <textarea
+                                                    className="block w-full border border-gray-200 rounded-xl shadow-sm py-3 px-4 text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none"
+                                                    rows={4}
+                                                    placeholder="Add details about this task..."
+                                                    value={editTaskDesc}
+                                                    onChange={(e) => setEditTaskDesc(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Status</label>
+                                                <select
+                                                    className="block w-full border border-gray-200 rounded-xl shadow-sm py-3 px-4 text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none"
+                                                    value={editTaskStatus}
+                                                    onChange={(e) => setEditTaskStatus(e.target.value as any)}
+                                                >
+                                                    <option value="ASSIGNED">To Do</option>
+                                                    <option value="IN_PROGRESS">In Progress</option>
+                                                    <option value="COMPLETED">Done</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Due Date</label>
+                                                <input
+                                                    type="date"
+                                                    className="block w-full border border-gray-200 rounded-xl shadow-sm py-3 px-4 text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                                    value={editTaskDueDate}
+                                                    onChange={(e) => setEditTaskDueDate(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="flex gap-4 pt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowEditModal(false)}
+                                                    className="flex-1 py-3 px-4 border border-gray-200 rounded-xl shadow-sm text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 transition-all"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="flex-1 py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
+                                                >
+                                                    Save Changes
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
+
                     {isLoadingTasks ? (
                         <div className="flex items-center justify-center py-20">
                             <div className="flex flex-col items-center gap-4">
@@ -347,6 +522,7 @@ export default function DashboardPage() {
                             tasks={filteredTasks}
                             onStatusChange={handleStatusChange}
                             onDelete={handleDeleteTask}
+                            onEdit={handleEditTask}
                         />
                     )}
                 </div>

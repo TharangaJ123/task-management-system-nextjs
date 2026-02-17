@@ -104,7 +104,8 @@ export async function GET(req: Request) {
                     userId: new mongoose.Types.ObjectId(user.userId),
                     $or: [
                         { createdAt: { $gte: sevenDaysAgo } },
-                        { completedAt: { $gte: sevenDaysAgo } }
+                        { completedAt: { $gte: sevenDaysAgo } },
+                        { status: 'COMPLETED', updatedAt: { $gte: sevenDaysAgo } }
                     ]
                 }
             },
@@ -123,12 +124,25 @@ export async function GET(req: Request) {
                         {
                             $match: {
                                 status: 'COMPLETED',
-                                completedAt: { $gte: sevenDaysAgo }
+                                $or: [
+                                    { completedAt: { $gte: sevenDaysAgo } },
+                                    {
+                                        $and: [
+                                            { completedAt: { $exists: false } },
+                                            { updatedAt: { $gte: sevenDaysAgo } }
+                                        ]
+                                    }
+                                ]
                             }
                         },
                         {
                             $group: {
-                                _id: { $dateToString: { format: "%Y-%m-%d", date: "$completedAt" } },
+                                _id: {
+                                    $dateToString: {
+                                        format: "%Y-%m-%d",
+                                        date: { $ifNull: ["$completedAt", "$updatedAt"] }
+                                    }
+                                },
                                 count: { $sum: 1 }
                             }
                         }

@@ -19,9 +19,10 @@ interface KanbanBoardProps {
     tasks: Task[];
     onStatusChange: (id: string, newStatus: Task['status']) => void;
     onDelete: (id: string) => void;
+    onEdit: (task: Task) => void;
 }
 
-export default function KanbanBoard({ tasks, onStatusChange, onDelete }: KanbanBoardProps) {
+export default function KanbanBoard({ tasks, onStatusChange, onDelete, onEdit }: KanbanBoardProps) {
     const [showAlert, setShowAlert] = useState(true);
 
     const columns: { id: Task['status']; title: string; bg: string }[] = [
@@ -110,6 +111,7 @@ export default function KanbanBoard({ tasks, onStatusChange, onDelete }: KanbanB
                                                     task={task}
                                                     index={index}
                                                     onDelete={onDelete}
+                                                    onEdit={onEdit}
                                                 />
                                             ))}
                                         </AnimatePresence>
