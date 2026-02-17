@@ -3,12 +3,12 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 // Use 'jose' for middleware as 'jsonwebtoken' relies on Node.js runtime APIs not available in Edge Runtime
-const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || 'your-secret-key'
+const JWT_ACCESS_SECRET = new TextEncoder().encode(
+    process.env.JWT_ACCESS_SECRET || 'your-secret-key'
 );
 
 export async function middleware(req: NextRequest) {
-    const token = req.cookies.get('token')?.value;
+    const token = req.cookies.get('accessToken')?.value;
 
     if (req.nextUrl.pathname.startsWith('/dashboard')) {
         if (!token) {
@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
         }
 
         try {
-            await jwtVerify(token, JWT_SECRET);
+            await jwtVerify(token, JWT_ACCESS_SECRET);
             return NextResponse.next();
         } catch (error) {
             console.error('JWT verification failed:', error);
