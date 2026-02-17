@@ -73,7 +73,8 @@ export async function POST(req: Request) {
         );
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
+            const errorMessage = error.issues[0]?.message || 'Validation Error';
+            return NextResponse.json({ message: errorMessage, errors: error.issues }, { status: 400 });
         }
         console.error('Registration error:', error);
         return NextResponse.json(
