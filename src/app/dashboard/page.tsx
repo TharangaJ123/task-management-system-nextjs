@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import KanbanBoard from '@/components/KanbanBoard';
+import SimpleTaskCard from '@/components/SimpleTaskCard';
 import ProductivityChart from '@/components/ProductivityChart';
-import { Plus, LogOut, Layout, User, Search, Filter, Edit2 } from 'lucide-react';
+import { Plus, LogOut, Layout, User, Search, Filter, Edit2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Task {
@@ -180,6 +181,15 @@ export default function DashboardPage() {
         return matchesSearch && matchesStatus;
     });
 
+    const todayTasks = tasks.filter(task => {
+        if (!task.dueDate) return false;
+        const today = new Date();
+        const taskDate = new Date(task.dueDate);
+        return taskDate.getDate() === today.getDate() &&
+            taskDate.getMonth() === today.getMonth() &&
+            taskDate.getFullYear() === today.getFullYear();
+    });
+
     if (loading || !user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -242,7 +252,33 @@ export default function DashboardPage() {
                         </motion.button>
                     </div>
 
-                    <ProductivityChart />
+                    {/* Today's Focus Section */}
+                    {todayTasks.length > 0 && (
+                        <div className="mb-10">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <span className="bg-amber-100 p-1.5 rounded-lg text-amber-600">
+                                    <Calendar size={20} />
+                                </span>
+                                Today's Focus
+                                <span className="text-sm font-normal text-gray-500 ml-2">
+                                    ({todayTasks.length} {todayTasks.length === 1 ? 'task' : 'tasks'} due today)
+                                </span>
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {todayTasks.map(task => (
+                                    <SimpleTaskCard
+                                        key={task._id}
+                                        task={task}
+                                        onDelete={handleDeleteTask}
+                                        onEdit={handleEditTask}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <ProductivityChart refreshTrigger={tasks} />
 
                     {/* Search and Filter Bar */}
                     <div className="flex flex-col sm:flex-row gap-4 mb-8">
